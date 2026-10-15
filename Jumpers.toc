@@ -1,4 +1,4 @@
-## Interface: 120100, 11509, 20506, 16001
+## Interface: 120105, 11509, 20506, 16001
 ## Title: Jumpers
 ## Notes: Jump-streak challenge: chain jumps into combos, beat your record and race your realm on the leaderboard.
 ## Author: Andrii Zolotarenko
