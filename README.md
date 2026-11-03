@@ -9,7 +9,7 @@ Design and plan: [REQUIREMENTS.md](REQUIREMENTS.md), [UI-SPEC.md](UI-SPEC.md),
 ## Install
 
 Download the zip from [CurseForge](https://www.curseforge.com/wow/addons/jumpers) or
-[GitHub Releases](https://github.com/andriizolotarenko-debug/jumpers/releases) and extract the `Jumpers`
+[GitHub Releases](https://github.com/andrii-artand/jumpers/releases) and extract the `Jumpers`
 folder into the `Interface/AddOns/` folder of your game version:
 
 | Game version | Folder |
