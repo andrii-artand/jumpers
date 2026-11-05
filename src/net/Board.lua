@@ -48,6 +48,22 @@ function Board.addFirstHand(store, rec)
   return confirm(store, rec)
 end
 
+-- `old` turned out to be another name of `new`, who is us: one player, not two.
+function Board.rename(store, old, new)
+  local moved = {}
+  for slot, rec in pairs(store.records) do
+    if rec.p == old then
+      store.records[slot] = nil
+      moved[#moved + 1] = rec
+    end
+  end
+  for _, rec in ipairs(moved) do
+    rec.p = new
+    confirm(store, rec)
+  end
+  store.peers[old], store.peers[new] = nil, nil
+end
+
 -- A record relayed by `relayer`. Relays of a player's own records by that player are ignored
 -- (their SavedVariables are not a source, R5.2). Returns true if this confirmed it.
 function Board.addRelayed(store, rec, relayer, now)

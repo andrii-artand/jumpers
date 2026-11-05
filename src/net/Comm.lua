@@ -39,6 +39,9 @@ local lastAnswer = -math.huge
 local answering = nil
 local probe = nil              -- { n } while we wait for our channel echo
 local selftest = nil           -- { at, n, got = { [chat type] = seconds } } while a self-test waits
+local firstName                -- UnitName("player"): only the first name where names have surnames
+local naming = nil             -- n of the test record that asks the game for our full name
+local nameKnown = false        -- that record came back, so `me` is what other players see
 -- channelState: "off" (Classic: never joined), "probing", "ok", "blocked"
 local status = { channel = false, channelState = "probing", guild = false, lastSync = nil }
 Comm.status = status
@@ -290,6 +293,21 @@ local function answerWhisper(from)
   end
 end
 
+-- True for our own test message when it comes back under a longer name. On Forever UnitName
+-- says "First" and messages come from "First Last", so only the echo tells us who we are.
+local function ownEcho(from, data)
+  if from == me or from:sub(1, #firstName + 1) ~= firstName .. " " then return false end
+  return data.n == naming or (probe ~= nil and data.n == probe.n)
+    or (selftest ~= nil and data.n == selftest.n)
+end
+
+local function learnName(name)
+  Board.rename(store(), me, name)
+  heard[name], via[name] = nil, nil
+  me, nameKnown = name, true
+  ns.Fire("BOARD")
+end
+
 -- Our own test message came back: the game echoes addon messages to the sender.
 local function onEcho(channel, data)
   if probe and channel == "CHANNEL" and data.n == probe.n then
@@ -311,7 +329,9 @@ local function onMessage(prefix, msg, channel, sender)
   local from = full(sender)
   if not from then return end
   local kind, data = Wire.decode(msg, from)
+  if kind == "T" and ownEcho(from, data) then learnName(from) end
   if from == me then
+    if kind == "T" and data.n == naming then nameKnown = true end
     if kind == "T" then onEcho(channel, data) end
     return
   end
@@ -386,6 +406,15 @@ local function heartbeat()
   for _, p in ipairs(whisperPeers()) do enqueue(msg, "WHISPER", p) end
 end
 
+-- Sends a test record to ourselves until one comes back: see ownEcho.
+local function askName()
+  if nameKnown then return end
+  local route = (IsInGuild and IsInGuild()) and "GUILD" or groupType()
+  if not route then return end
+  naming = 100 + math.random(0, 899)
+  enqueue(Wire.test(testRecord(naming)), route)
+end
+
 -- /jumpers selftest: sends a test record through every route we have and waits for the game
 -- to echo it back. Checks sending, pacing, the channel, decoding and verification on this
 -- client. Other clients ignore "T" messages, so nothing reaches anyone's board.
@@ -432,7 +461,8 @@ function Comm.SelfTest()
 end
 
 function Comm.Init()
-  me = full(UnitName and UnitName("player"))
+  firstName = UnitName and UnitName("player")
+  me = full(firstName)
   local class = UnitClass and select(2, UnitClass("player"))
   if type(class) == "string" and not issecret(class) then myClass = class end
   if not (C_ChatInfo and C_ChatInfo.SendAddonMessage) or not me then return end
@@ -461,6 +491,7 @@ function Comm.Init()
   C_Timer.NewTicker(PACE, pump)
   C_Timer.After(8, function()
     Comm.RequestRoster()
+    askName()
     probeChannel()
     heartbeat()
     sync(true)
@@ -468,6 +499,7 @@ function Comm.Init()
   end)
   C_Timer.NewTicker(HEARTBEAT, function()
     if status.channelState == "ok" and channelId <= 0 then joinChannel() end
+    askName()
     heartbeat()
     askPeers()
   end)

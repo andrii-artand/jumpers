@@ -12,6 +12,24 @@ local function rec(p, n, e, d, extra)
   return r
 end
 
+describe("Board.rename", function()
+  it("turns one player's two names into one", function()
+    local s = Board.ensure()
+    Board.addFirstHand(s, rec("Art-R", 29))                   -- our own copy, first name only
+    Board.addFirstHand(s, rec("Art Vl-R", 29))                -- the same record, heard back
+    Board.addFirstHand(s, rec("Art-R", 40, NOW - 86400, DAY - 1))
+    Board.addFirstHand(s, rec("Art Xl-R", 35))                -- somebody else
+    Board.notePeer(s, "Art Vl-R", NOW)
+    Board.rename(s, "Art-R", "Art Vl-R")
+    local today = Board.top(s, DAY, 1)
+    assert.equal(2, #today)
+    assert.equal("Art Xl-R", today[1].p)
+    assert.equal("Art Vl-R", today[2].p)
+    assert.equal("Art Vl-R", Board.top(s, DAY, 7)[1].p)
+    assert.is_nil(s.peers["Art Vl-R"])
+  end)
+end)
+
 describe("Wire", function()
   it("round-trips records and relays", function()
     local r = rec("Ann-Realm", 42)

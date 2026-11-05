@@ -184,7 +184,7 @@ local function install()
       table.insert(Mock.routes, { msg = msg, target = target, to = to })
       if Mock.echo[target] and (target ~= "WHISPER" or to == "Tester-TestRealm") then
         table.insert(timers, { at = clock + 0.5, once = true,
-          fn = function() Mock.fire("CHAT_MSG_ADDON", prefix, msg, target, "Tester") end })
+          fn = function() Mock.fire("CHAT_MSG_ADDON", prefix, msg, target, Mock.sender or "Tester") end })
       end
       return true
     end,
